@@ -8,7 +8,7 @@ else
 endif
 
 # List of directories and files to format and lint
-TARGETS = chatbot/ tests/
+TARGETS = agentml/
 
 # Format code using isort and black
 format:
