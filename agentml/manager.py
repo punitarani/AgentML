@@ -76,6 +76,21 @@ class Manager:
                         ]
                     )
 
+    def run_single_task(self, task: dict) -> list[LlmMessage]:
+        """Run a single task and return its output"""
+        agent, objective = list(task.items())[0]
+        print(
+            f"Manager.run_single_task: Running agent {agent} with objective: {objective}"
+        )
+        agent = agent(
+            session_id=self.session_id,
+            objective=objective,
+            messages=self.messages,
+        )
+
+        output = agent.run()
+        return output
+
     @staticmethod
     def get_agent(agent: str):
         """Get the agent"""
