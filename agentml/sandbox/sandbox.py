@@ -91,7 +91,7 @@ class Sandbox:
         old_cwd = Path.cwd()
         os.chdir(self.sandbox_dir)
 
-        python_exe = r"C:\Users\punit\AppData\Local\pypoetry\Cache\virtualenvs\agentml-j_WyCUeV-py3.11\Scripts\python.exe"
+        python_exe = os.getenv("PYTHON_EXE", "python")
 
         try:
             # Run the main.py script
