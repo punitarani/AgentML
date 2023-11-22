@@ -1,0 +1,108 @@
+"""agentml/agents/coder.py"""
+
+import re
+from uuid import UUID
+
+from agentml.models import LlmMessage, LlmRole
+from agentml.oai import client as openai
+from agentml.sandbox import Sandbox
+
+from .base import Agent
+
+
+class Coder(Agent):
+    """Coder Agent"""
+
+    DEFAULT_MODEL = "gpt-4-1106-preview"
+
+    DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant that writes python code.
+You are given a task to solve along with the context of the previous steps.
+
+You are only allowed to use python code to solve the task.
+The code block must be a valid starting with ```python and ending with ```.
+
+There must only be 1 code block in the response.
+The code block must include the entire code to solve the task.
+Do not suggest incomplete code which requires users to modify.
+
+All the packages and libraries are already installed.
+Only provide the code for main.py.
+The dataset is in file "data.csv"
+
+If the code will output a file or image, save the file in the output directory.
+This applies to any plots, charts, graphs, or images. Use appropriate name and extensions.
+All images must be saved as .jpg files.
+
+Use appropriate variable names and comments to make the code readable.
+Use appropriate colors and labels for plots, charts, and graphs.
+"""
+
+    def __init__(
+        self,
+        session_id: UUID,
+        objective: str,
+        messages: list[LlmMessage] = None,
+        prompt: str = DEFAULT_SYSTEM_MESSAGE,
+    ) -> None:
+        """
+        Coder Agent constructor
+
+        Args:
+            session_id (UUID): Session ID
+            objective (str): Objective of the agent
+            messages (list[LlmMessage], optional): List of messages to be used for the agent. Defaults to [].
+            prompt (str, optional): Prompt to be used for the agent. Defaults to DEFAULT_SYSTEM_MESSAGE.
+        """
+
+        super().__init__(
+            session_id=session_id, objective=objective, messages=messages, prompt=prompt
+        )
+
+        self.sandbox = Sandbox(session_id=session_id)
+
+        self.messages.extend(
+            [
+                LlmMessage(role=LlmRole.SYSTEM, content=self.prompt),
+                LlmMessage(role=LlmRole.USER, content=self.objective),
+                LlmMessage(role=LlmRole.USER, content=self.sandbox.get_file_content()),
+            ]
+        )
+
+        self.code: str | None = None
+
+    def run(self) -> list[LlmMessage]:
+        """Run the agent"""
+        print(f"Coder.run: Sending request to OpenAI API: {self.objective}")
+        response = openai.chat.completions.create(
+            model=self.DEFAULT_MODEL,
+            messages=self.get_messages(),
+        )
+
+        print(f"Coder.run: Received response from OpenAI API: {response}")
+        response_content = response.choices[0].message.content
+        matched = re.search(r"```python(.*?)```", response_content, re.DOTALL)
+        if matched:
+            code = matched.group(1).strip()
+        else:
+            code = None
+
+        self.sandbox.update(code=code)
+        output, output_files = self.sandbox.execute()
+        # TODO: validate output
+
+        print(f"Coder.run: Sandbox output: {output}")
+        for file in output_files:
+            print(f"Coder.run: Sandbox output file: {file}")
+
+        messages = [
+            LlmMessage(role=LlmRole.USER, content=self.objective),
+            LlmMessage(
+                role=LlmRole.ASSISTANT,
+                content=f"Here is the code:\n```python\n{code}\n```",
+            ),
+            LlmMessage(
+                role=LlmRole.ASSISTANT, content=f"Here is the output:\n{output}"
+            ),
+        ]
+
+        return messages
