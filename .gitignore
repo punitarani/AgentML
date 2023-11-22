@@ -1,5 +1,7 @@
 ### Project
 .ruff_cache/
+.sandbox/
+logs/
 
 ### Python
 # Byte-compiled / optimized / DLL files
