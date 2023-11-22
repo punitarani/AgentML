@@ -1,0 +1,26 @@
+"""main.py"""
+
+from copy import deepcopy
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+# TODO: Add additional imports here
+
+# Load the dataset
+data = pd.read_csv("./data.csv")
+
+
+def main() -> None:
+    """Main function"""
+
+    # Create a copy of the dataset
+    df = deepcopy(data)
+
+    # TODO: Add code here
+
+
+if __name__ == "__main__":
+    main()
