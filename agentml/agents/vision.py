@@ -19,6 +19,7 @@ You are given a task to analyze images and provide insights.
 
 You must use the OpenAI Vision API to analyze the images.
 Return a description and any notable findings about the images.
+The analysis must be thorough, complete and provide valuable insights.
 
 This analysis will be used to plan the next steps to solve the problem.
 """
@@ -55,6 +56,8 @@ This analysis will be used to plan the next steps to solve the problem.
 
         self.analysis: str | None = None
 
+        self._last_messages = []
+
     def run(self) -> list[LlmMessage]:
         """Run the agent"""
         encoded_images = self.sandbox.get_images_encoded()
@@ -83,4 +86,14 @@ This analysis will be used to plan the next steps to solve the problem.
             ),
         ]
 
+        self._last_messages = messages
+
         return messages
+
+    def retry(self) -> list[LlmMessage]:
+        """Retry the agent"""
+        self.messages.extend(self._last_messages)
+        self.messages.append(
+            LlmMessage(role=LlmRole.SYSTEM, content="Please try again.")
+        )
+        return self.run()

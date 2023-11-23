@@ -91,7 +91,11 @@ class Manager:
         """
 
         agent = self.last_run_agent
-        if agent and isinstance(agent, Agent) and isinstance(agent, Coder):
+        if (
+            agent
+            and isinstance(agent, Agent)
+            and (isinstance(agent, Coder) or isinstance(agent, Vision))
+        ):
             print(f"Retrying agent: {type(agent).__name__}")
             return agent.retry()
         else:
