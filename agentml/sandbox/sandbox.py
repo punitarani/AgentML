@@ -8,6 +8,7 @@ import base64
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import List, Tuple
 from uuid import UUID
@@ -91,13 +92,11 @@ class Sandbox:
         old_cwd = Path.cwd()
         os.chdir(self.sandbox_dir)
 
-        python_exe = r"C:\Users\punit\AppData\Local\pypoetry\Cache\virtualenvs\agentml-j_WyCUeV-py3.11\Scripts\python.exe"
-
         try:
             # Run the main.py script
             print(f"Sandbox: Executing code in sandbox {self.session_id}")
             result = subprocess.run(
-                [python_exe, "main.py"], capture_output=True, text=True
+                [sys.executable, "main.py"], capture_output=True, text=True
             )
 
             # Capture the output
