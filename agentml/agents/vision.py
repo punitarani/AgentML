@@ -1,6 +1,5 @@
 """agentml/agents/vision.py"""
 
-import base64
 from uuid import UUID
 
 from agentml.models import LlmMessage, LlmRole
@@ -60,8 +59,7 @@ This analysis will be used to plan the next steps to solve the problem.
         """Run the agent"""
         encoded_images = self.sandbox.get_images_encoded()
         image_messages = [
-            {"type": "image", "data": {"image": base64.b64decode(image)}}
-            for image in encoded_images
+            {"type": "image", "data": {"image": image}} for image in encoded_images
         ]
 
         print("Vision.run: Sending request to OpenAI API with images")
