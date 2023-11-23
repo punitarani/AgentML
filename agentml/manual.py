@@ -6,6 +6,7 @@ from uuid import UUID
 
 from agentml.agents import Agent, Coder, Planner, Vision
 from agentml.models import LlmMessage, LlmRole
+from agentml.oai import client as openai
 from agentml.sandbox import Sandbox
 
 
@@ -141,6 +142,71 @@ class Manager:
 
             else:
                 print(f"Manager.validate_run: No instance found for {agent_name}")
+
+    @staticmethod
+    def next(output) -> str:
+        """Get the next task"""
+        next_prompt = """Based on the provided output, decide if the output is valid or invalid.
+If it is invalid, return "retry",
+If it is valid, return "validate",
+
+If the output is blank, return "validate".
+In most cases, you should return "validate" to continue to the next step.
+Only if there is an error in the output, you should return "retry" to retry the step.
+        """
+
+        messages = [
+            LlmMessage(role=LlmRole.SYSTEM, content=next_prompt),
+            LlmMessage(
+                role=LlmRole.USER,
+                content=output,
+            ),
+        ]
+
+        # Convert messages to JSON
+        messages = [msg.model_dump(mode="json") for msg in messages]
+
+        print(f"Manager.next: Sending request to OpenAI API: {messages}")
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+        )
+
+        content = response.choices[0].message.content
+        print(f"Manager.next: Received response from OpenAI API: {content}")
+
+        return content.lower()
+
+    def done(self, output: str) -> bool:
+        """Check if the manager is done"""
+        done_prompt = """Based on the provided output, decide if the agent has completed the task.
+Return `true` if the agent has completed the task. Otherwise, return `false`.
+        """
+
+        messages = [
+            LlmMessage(role=LlmRole.SYSTEM, content=done_prompt),
+            LlmMessage(
+                role=LlmRole.USER, content=f"Objective to complete: {self.goal}"
+            ),
+            LlmMessage(
+                role=LlmRole.USER,
+                content=output,
+            ),
+        ]
+
+        # Convert messages to JSON
+        messages = [msg.model_dump(mode="json") for msg in messages]
+
+        print(f"Manager.done: Sending request to OpenAI API: {messages}")
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+        )
+
+        content = response.choices[0].message.content
+        print(f"Manager.done: Received response from OpenAI API: {content}")
+
+        return str(content).lower() == "true"
 
     def add_task(self, task: dict[str, str]) -> None:
         """Add a task to the queue"""
