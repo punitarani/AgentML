@@ -9,71 +9,132 @@ from uuid import UUID
 
 import streamlit as st
 
-from agentml import Manager
-from agentml.agents import Coder, Planner, Vision
+from agentml.manual import Manager
 
 # Streamlit layout
 st.set_page_config(layout="wide", page_icon="🤖")
-st.title("Agent Manager Interface")
+st.title("AgentML")
 
-# Input for initializing Manager
-goal = st.text_input("Enter the goal:", value="Build a classifier")
-csv_path = st.text_input("Enter the path to CSV file:", value="data/data.csv")
-session_id = st.text_input(
-    "Enter the session ID:", value="11111111-1111-1111-1111-111111111111"
-)
+left_column, right_column = st.columns(2, gap="large")
 
-# Initialize Manager
-if st.button("Initialize Manager"):
-    if not Path(csv_path).exists():
-        st.error("CSV file does not exist.")
-    else:
-        session_id = UUID(session_id) if session_id else UUID()
-        manager = Manager(goal, Path(csv_path), session_id)
-        st.session_state["manager"] = manager
-        st.success(f"Manager initialized with session ID: {session_id}")
+with left_column:
+    with st.expander(
+        "Initialize Manager", expanded=st.session_state.get("manager") is None
+    ):
+        # Input for initializing Manager
+        goal = st.text_input("Enter the goal:", value="Build a classifier")
+        csv_path = st.text_input("Enter the path to CSV file:", value="data/data.csv")
+        session_id = st.text_input(
+            "Enter the session ID:", value="11111111-1111-1111-1111-111111111111"
+        )
 
+        # Initialize the Manager
+        init_manager_btn = st.button("Initialize Manager", use_container_width=True)
+        if init_manager_btn:
+            manager = Manager(
+                goal=goal, csv=Path(csv_path), session_id=UUID(session_id)
+            )
+            st.session_state["manager"] = manager
+            st.session_state[
+                "messages"
+            ] = []  # Initialize messages list in session state
+            st.success(
+                f"Manager initialized successfully with Session ID: {session_id}"
+            )
 
-# Function to convert task string to dictionary
-def parse_task(task_str):
-    agent_str, objective = task_str.split(": ", 1)
-    agent_class = {"Planner": Planner, "Coder": Coder, "Vision": Vision}.get(agent_str)
-    if not agent_class:
-        raise ValueError(f"Invalid agent type: {agent_str}")
-    return {agent_class: objective}
+    if "manager" in st.session_state:
+        manager = st.session_state["manager"]
+        st.divider()
 
+        st.subheader("Tasks")
+        for task in manager.tasks:
+            for agent, objective in task.items():
+                st.write(f"`{agent.__name__}` {objective}")
 
-# Task Queue Management
-if "manager" in st.session_state:
-    manager = st.session_state["manager"]
-    st.header("Task Queue")
-    task_list = st.text_area(
-        "Edit tasks (Agent: Objective)",
-        value="\n".join(
-            [
-                f"{agent.__name__}: {objective}"
-                for task in manager.tasks
-                for agent, objective in task.items()
-            ]
-        ),
-    )
+        with st.expander("Add Task"):
+            add_task_agent = st.selectbox("Agent", ("Coder", "Planner", "Vision"))
+            add_task_objective = st.text_input("Objective", key="new_task_objective")
 
-    if st.button("Update Tasks"):
-        # Parse and update tasks
-        tasks = [
-            parse_task(task_str)
-            for task_str in task_list.split("\n")
-            if task_str.strip()
-        ]
-        manager.tasks = tasks
-        st.success("Tasks updated.")
+            def add_task():
+                """Add a task to the manager"""
+                if add_task_objective:
+                    manager.add_task({add_task_agent: add_task_objective})
+                    st.session_state["new_task_objective"] = ""
 
-    # Execute Tasks
-    st.header("Execute Tasks")
-    if st.button("Run Next Task"):
-        if manager.tasks:
-            task = manager.tasks.pop(0)
-            output = manager.run_single_task(task)
-            st.write("Task Output:", output)
-        else:
-            st.warning("No more tasks in the queue.")
+            add_task_btn = st.button(
+                "Add Task", on_click=add_task, use_container_width=True
+            )
+
+        with st.expander("Delete Task"):
+            if manager.tasks:
+                task_options = [
+                    f"{agent.__name__}: {objective}"
+                    for task in manager.tasks
+                    for agent, objective in task.items()
+                ]
+                selected_task_index = st.selectbox(
+                    "Select a task to delete",
+                    range(len(task_options)),
+                    format_func=lambda x: task_options[x],
+                )
+
+                delete_task_btn = st.button("Delete Task", use_container_width=True)
+                if delete_task_btn:
+                    manager.delete_task(idx=selected_task_index)
+                    st.rerun()
+
+        st.divider()
+
+        get_task_btn = st.button("Get Task", use_container_width=True)
+        if get_task_btn and manager.tasks:
+            task = manager.tasks[0]
+            for agent, objective in task.items():
+                st.write(f"`{agent.__name__}`: {objective}")
+
+        run_manager_btn = st.button(
+            "Run Agent", disabled=not manager.tasks, use_container_width=True
+        )
+        if run_manager_btn:
+            with st.spinner("Running Agent..."):
+                st.session_state["messages"] = manager.run()
+
+        st.subheader("Messages")
+        for index, msg in enumerate(st.session_state.get("messages", [])):
+            st.chat_message(msg.role.value).write(msg.content)
+
+        with st.expander("Update Messages", expanded=False):
+            for index, msg in enumerate(st.session_state.get("messages", [])):
+                key = f"msg_{index}"
+                updated_message = st.text_input(
+                    f"Update {msg.role.value} message:", value=msg.content, key=key
+                )
+                st.session_state["messages"][
+                    index
+                ].content = updated_message  # Update the message content
+
+        validate_run_btn = st.button(
+            "Validate Run",
+            disabled=not st.session_state.get("messages"),
+            use_container_width=True,
+        )
+        if validate_run_btn:
+            with st.spinner("Validating run..."):
+                manager.validate_run(st.session_state["messages"])
+                st.success("Validation completed.")
+                st.session_state[
+                    "messages"
+                ] = []  # Reset messages list in session state
+                st.rerun()
+
+with right_column:
+    st.header("Agent Log")
+    log_refresh_btn = st.button("Refresh Log", use_container_width=True)
+    if log_refresh_btn:
+        st.rerun()
+
+    if "manager" in st.session_state:
+        manager = st.session_state["manager"]
+
+        st.subheader("History")
+        for msg in manager.messages:
+            st.chat_message(msg.role.value).write(msg.content)
