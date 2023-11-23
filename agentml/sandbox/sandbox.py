@@ -146,7 +146,8 @@ class Sandbox:
         """
 
         with open(self.sandbox_dir.joinpath(file), "r") as f:
-            return f.read()
+            code = f.read()
+            return f"```python\n{code}\n```"
 
     def get_images_encoded(self) -> list[str]:
         """
