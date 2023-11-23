@@ -85,16 +85,22 @@ with left_column:
 
         st.divider()
 
-        get_task_btn = st.button("Get Task", use_container_width=True)
+        task_btn_col, run_btn_col = st.columns(2)
+
+        with task_btn_col:
+            get_task_btn = st.button("Get Task", use_container_width=True)
+
+        with run_btn_col:
+            run_agent_btn = st.button(
+                "Run Agent", disabled=not manager.tasks, use_container_width=True
+            )
+
         if get_task_btn and manager.tasks:
             task = manager.tasks[0]
             for agent, objective in task.items():
                 st.write(f"`{agent.__name__}`: {objective}")
 
-        run_manager_btn = st.button(
-            "Run Agent", disabled=not manager.tasks, use_container_width=True
-        )
-        if run_manager_btn:
+        if run_agent_btn:
             with st.spinner("Running Agent..."):
                 st.session_state["messages"] = manager.run()
 
@@ -112,19 +118,23 @@ with left_column:
                     index
                 ].content = updated_message  # Update the message content
 
-        validate_run_btn = st.button(
-            "Validate Run",
-            disabled=not st.session_state.get("messages"),
-            use_container_width=True,
-        )
-        if validate_run_btn:
-            with st.spinner("Validating run..."):
-                manager.validate_run(st.session_state["messages"])
-                st.success("Validation completed.")
-                st.session_state[
-                    "messages"
-                ] = []  # Reset messages list in session state
-                st.rerun()
+        rerun_btn_col, validate_btn_col = st.columns(2)
+
+        with validate_btn_col:
+            validate_run_btn = st.button(
+                "Validate Run",
+                disabled=not st.session_state.get("messages"),
+                use_container_width=True,
+            )
+            if validate_run_btn:
+                with st.spinner("Validating run..."):
+                    manager.validate_run(st.session_state["messages"])
+                    st.success("Validation completed.")
+                    st.session_state["messages"] = []
+                    st.rerun()
+
+        with rerun_btn_col:
+            rerun_btn = st.button("Rerun", disabled=True, use_container_width=True)
 
 with right_column:
     st.header("Agent Log")
