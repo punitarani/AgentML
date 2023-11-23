@@ -110,9 +110,13 @@ Now, outline the steps to solve the problem.
         )
 
         print(f"Planner.run: Received response from OpenAI API: {response}")
-        self.plan = json.loads(response.choices[0].message.content).get(
-            "tool_calls", []
-        )
+        plan = json.loads(response.choices[0].message.content).get("tool_calls", [])
+
+        # Remove the first plan if it is Planner
+        if plan and plan[0]["tool"] == "Planner":
+            plan.pop(0)
+
+        self.plan = plan
 
         plan_str = "\n".join(
             [f"- {task['tool']}: {task['objective']}" for task in self.plan]
