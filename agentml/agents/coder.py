@@ -38,7 +38,7 @@ Use appropriate colors and labels for plots, charts, and graphs.
 
 Rewrite the entire file starting from the imports and ending,
 with the last line outputting the result of the intended task.
-"""
+    """
 
     def __init__(
         self,
@@ -107,6 +107,8 @@ with the last line outputting the result of the intended task.
             ),
         ]
 
+        output = self.get_pretty_output(messages, output)
+
         if output:
             messages.append(
                 LlmMessage(
@@ -125,3 +127,34 @@ with the last line outputting the result of the intended task.
             LlmMessage(role=LlmRole.SYSTEM, content="Please try again.")
         )
         return self.run()
+
+    @staticmethod
+    def get_pretty_output(messages: list[LlmMessage], output: str) -> str:
+        """
+        Get pretty output from messages
+
+        Args:
+            messages (list[LlmMessage]): LLM Messages
+            output (str): Output from sandbox
+        """
+
+        formatter_prompt = """You are a raw text to pretty markdown converter.
+Format the output from the code execution to pretty markdown.
+It must be in a markdown as format: ```markdown\n{pretty output}\n```
+        """
+
+        # Build messages to send to OpenAI API
+        messages = [
+            LlmMessage(role=LlmRole.SYSTEM, content=formatter_prompt),
+            LlmMessage(role=LlmRole.USER, content=output),
+        ]
+
+        # Convert messages to JSON
+        messages = [msg.model_dump(mode="json") for msg in messages]
+
+        print("Coder.get_pretty_output: Getting pretty output")
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=messages,
+        )
+        return response.choices[0].message.content
