@@ -64,6 +64,7 @@ Note:
 - Each item in the tool_calls array must contain 2 keys: tool and objective
 - The tool key must be one of the following: Planner, Coder, Vision
 - The objective key must be a string explaining the next step to solve the problem
+- In most cases, the first tool will be Coder and the last tool will be Planner
 
 Now, outline the steps to solve the problem.
     """

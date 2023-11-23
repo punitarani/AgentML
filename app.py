@@ -9,7 +9,25 @@ from uuid import UUID
 
 import streamlit as st
 
+from agentml.agents import Agent, Coder, Vision
 from agentml.manual import Manager
+
+
+def can_retry(mngr: Manager) -> bool:
+    """Check if the last agent can be retried"""
+
+    if not st.session_state.get("messages"):
+        return False
+
+    _agent = mngr.last_run_agent
+    if (
+        _agent
+        and isinstance(_agent, Agent)
+        and (isinstance(_agent, Coder) or isinstance(_agent, Vision))
+    ):
+        return True
+    return False
+
 
 # Streamlit layout
 st.set_page_config(layout="wide", page_icon="🤖")
@@ -88,11 +106,18 @@ with left_column:
         task_btn_col, run_btn_col = st.columns(2)
 
         with task_btn_col:
-            get_task_btn = st.button("Get Task", use_container_width=True)
+            get_task_btn = st.button(
+                "Get Task",
+                use_container_width=True,
+                help="Preview the next task in the queue.",
+            )
 
         with run_btn_col:
             run_agent_btn = st.button(
-                "Run Agent", disabled=not manager.tasks, use_container_width=True
+                "Run Agent",
+                disabled=not manager.tasks,
+                use_container_width=True,
+                help="Run the next agent in the queue.",
             )
 
         if get_task_btn and manager.tasks:
@@ -118,23 +143,34 @@ with left_column:
                     index
                 ].content = updated_message  # Update the message content
 
-        rerun_btn_col, validate_btn_col = st.columns(2)
+        retry_btn_col, validate_btn_col = st.columns(2)
 
         with validate_btn_col:
             validate_run_btn = st.button(
-                "Validate Run",
+                "Validate",
                 disabled=not st.session_state.get("messages"),
                 use_container_width=True,
+                help="Approve the run and move on to the next task.",
             )
             if validate_run_btn:
-                with st.spinner("Validating run..."):
+                with st.spinner("Validating..."):
                     manager.validate_run(st.session_state["messages"])
                     st.success("Validation completed.")
                     st.session_state["messages"] = []
                     st.rerun()
 
-        with rerun_btn_col:
-            rerun_btn = st.button("Rerun", disabled=True, use_container_width=True)
+        with retry_btn_col:
+            retry_btn = st.button(
+                "Retry",
+                disabled=not can_retry(manager),
+                use_container_width=True,
+                help="Retry the last agent (only works for Coder and Vision).",
+            )
+            if retry_btn:
+                with st.spinner("Retrying..."):
+                    st.session_state["messages"] = manager.retry_last_agent()
+                    st.success("Retry completed.")
+                    st.rerun()
 
 with right_column:
     st.header("Agent Log")
@@ -145,6 +181,5 @@ with right_column:
     if "manager" in st.session_state:
         manager = st.session_state["manager"]
 
-        st.subheader("History")
         for msg in manager.messages:
             st.chat_message(msg.role.value).write(msg.content)

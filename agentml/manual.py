@@ -4,14 +4,13 @@ from pathlib import Path
 from typing import Type
 from uuid import UUID
 
+from agentml.agents import Agent, Coder, Planner, Vision
 from agentml.models import LlmMessage, LlmRole
-
-from .agents import Agent, Coder, Planner, Vision
-from .sandbox import Sandbox
+from agentml.sandbox import Sandbox
 
 
 class Manager:
-    """Manual Manager"""
+    """Manual Manager to handle different agent tasks."""
 
     def __init__(
         self,
@@ -55,6 +54,7 @@ class Manager:
 
         # Stored agent instances
         self.agents = {}
+        self.last_run_agent = None
 
     def run(self) -> list[LlmMessage]:
         """Run the agent"""
@@ -80,7 +80,23 @@ class Manager:
             # Store the agent instance
             self.agents[agent_class.__name__] = agent_instance
 
+            # Set the last run agent
+            self.last_run_agent = agent_instance
+
             return agent_instance.run()
+
+    def retry_last_agent(self) -> list[LlmMessage]:
+        """
+        Retry the last run agent.
+        """
+
+        agent = self.last_run_agent
+        if agent and isinstance(agent, Agent) and isinstance(agent, Coder):
+            print(f"Retrying agent: {type(agent).__name__}")
+            return agent.retry()
+        else:
+            print("No suitable agent found for retry.")
+            return []
 
     def validate_run(self, messages: list[LlmMessage]) -> None:
         """User validate the run"""
@@ -129,9 +145,13 @@ class Manager:
             self.tasks.append({self.get_agent(agent): objective})
 
     def delete_task(self, idx: int) -> None:
-        """Delete a task from the queue"""
-        print(f"Manager.delete_task: Deleting task at index: {idx}")
-        del self.tasks[idx]
+        """Remove a task from the queue by index."""
+        if idx < 0 or idx >= len(self.tasks):
+            print(f"Invalid task index: {idx}")
+            return
+
+        removed_task = self.tasks.pop(idx)
+        print(f"Removed task: {removed_task}")
 
     @staticmethod
     def get_agent(agent: str | Type[Agent]) -> Type[Agent]:

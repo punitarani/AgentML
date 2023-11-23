@@ -59,7 +59,8 @@ This analysis will be used to plan the next steps to solve the problem.
         """Run the agent"""
         encoded_images = self.sandbox.get_images_encoded()
         image_messages = [
-            {"type": "image", "data": {"image": image}} for image in encoded_images
+            {"type": "image_url", "image_url": {"url": image}}
+            for image in encoded_images
         ]
 
         print("Vision.run: Sending request to OpenAI API with images")
@@ -67,13 +68,12 @@ This analysis will be used to plan the next steps to solve the problem.
             model=self.DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": self.prompt},
-                {"role": "user", "content": {"type": "mixed", "data": image_messages}},
+                {"role": "user", "content": image_messages},
             ],
         )
 
+        print(f"Vision.run: Received response from OpenAI API: {response}")
         self.analysis = response.choices[0].message.content
-
-        self.sandbox.delete_images()
 
         messages = [
             LlmMessage(role=LlmRole.USER, content=self.objective),

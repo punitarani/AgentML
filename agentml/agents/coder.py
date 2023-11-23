@@ -35,6 +35,9 @@ All images must be saved as .jpg files.
 
 Use appropriate variable names and comments to make the code readable.
 Use appropriate colors and labels for plots, charts, and graphs.
+
+Rewrite the entire file starting from the imports and ending,
+with the last line outputting the result of the intended task.
 """
 
     def __init__(
@@ -68,6 +71,8 @@ Use appropriate colors and labels for plots, charts, and graphs.
             ]
         )
 
+        self._last_messages = None
+
         self.code: str | None = None
 
     def run(self) -> list[LlmMessage]:
@@ -100,9 +105,23 @@ Use appropriate colors and labels for plots, charts, and graphs.
                 role=LlmRole.ASSISTANT,
                 content=f"Here is the code:\n```python\n{code}\n```",
             ),
-            LlmMessage(
-                role=LlmRole.ASSISTANT, content=f"Here is the output:\n{output}"
-            ),
         ]
 
+        if output:
+            messages.append(
+                LlmMessage(
+                    role=LlmRole.ASSISTANT, content=f"Here is the output:\n{output}"
+                ),
+            )
+
+        self._last_messages = messages
+
         return messages
+
+    def retry(self) -> list[LlmMessage]:
+        """Retry the agent"""
+        self.messages.extend(self._last_messages)
+        self.messages.append(
+            LlmMessage(role=LlmRole.SYSTEM, content="Please try again.")
+        )
+        return self.run()
