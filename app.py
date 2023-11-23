@@ -59,6 +59,7 @@ with left_column:
             st.success(
                 f"Manager initialized successfully with Session ID: {session_id}"
             )
+            st.rerun()
 
     if "manager" in st.session_state:
         manager = st.session_state["manager"]
