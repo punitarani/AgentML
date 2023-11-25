@@ -5,6 +5,28 @@
 Offering simplicity and power, it's suited for a diverse audience, from students to ML professionals and non-coders.
 AgentML streamlines ML processes for all types of datasets, embodying innovation in artificial intelligence.
 
+## Demo
+
+The following demo videos showcase AgentML's capabilities in both Supervised and Autonomous modes.
+
+AgentML is capable of handling datasets, writing code and also training and evaluating machine learning models.
+
+![AgentML Highlight](docs/training-demo.png)
+
+### Supervised Mode Video
+
+Human-in-the-loop mode to train a classifier on the Iris dataset.
+
+[![AgentML Supervised Demo](docs/tasks-demo.png)](https://drive.google.com/file/d/1FmeKT7AlslZPFocpZgVqKc1bzUgE2rAn/view?usp=sharing)
+
+### Autonomous Mode Video
+
+Autonomous mode with validator pseudo-agent to replace human validation.
+
+[![AgentML Autonomous Demo](docs/autonomous-demo.png)](https://drive.google.com/file/d/19BLRT-t8P0pI8lcz8q3kvFDCQcS51Akz/view?usp=sharing)
+
+> Video is sped up for brevity.
+
 ## Key Features
 
 ### Dual Capability in ML Workflow
