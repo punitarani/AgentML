@@ -104,27 +104,12 @@ with left_column:
 
         st.divider()
 
-        task_btn_col, run_btn_col = st.columns(2)
-
-        with task_btn_col:
-            get_task_btn = st.button(
-                "Get Task",
-                use_container_width=True,
-                help="Preview the next task in the queue.",
-            )
-
-        with run_btn_col:
-            run_agent_btn = st.button(
-                "Run Agent",
-                disabled=not manager.tasks,
-                use_container_width=True,
-                help="Run the next agent in the queue.",
-            )
-
-        if get_task_btn and manager.tasks:
-            task = manager.tasks[0]
-            for agent, objective in task.items():
-                st.write(f"`{agent.__name__}`: {objective}")
+        run_agent_btn = st.button(
+            "Run Agent",
+            disabled=not manager.tasks,
+            use_container_width=True,
+            help="Run the next agent in the queue.",
+        )
 
         if run_agent_btn:
             with st.spinner("Running Agent..."):
